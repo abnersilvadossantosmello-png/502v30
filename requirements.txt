@@ -44,3 +44,6 @@ trafilatura
 pdfplumber==0.11.7
 pypdf==4.0.1
 uuid
+playwright==1.40.0
+selenium==4.16.2
+webdriver-manager==4.0.1

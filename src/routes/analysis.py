@@ -12,7 +12,7 @@ import json
 from datetime import datetime
 from flask import Blueprint, request, jsonify, session
 from services.enhanced_analysis_engine import enhanced_analysis_engine
-from services.ultra_detailed_analysis_engine import ultra_detailed_analysis_engine
+from services.corrected_ultra_detailed_analysis_engine import corrected_ultra_detailed_analysis_engine
 from services.ai_manager import ai_manager
 from services.production_search_manager import production_search_manager
 from services.safe_extract_content import safe_content_extractor
@@ -100,7 +100,7 @@ def analyze_market():
         # Executa análise GIGANTE ultra-detalhada
         logger.info("🚀 Executando análise GIGANTE ultra-detalhada...")
         try:
-            analysis_result = ultra_detailed_analysis_engine.generate_gigantic_analysis(
+            analysis_result = corrected_ultra_detailed_analysis_engine.generate_corrected_gigantic_analysis(
                 data,
                 session_id=session_id,
                 progress_callback=progress_callback

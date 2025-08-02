@@ -20,6 +20,18 @@ from services.auto_save_manager import salvar_etapa, salvar_erro
 
 # Imports condicionais para não quebrar se não estiver instalado
 try:
+    from services.playwright_extractor import playwright_extractor
+    HAS_PLAYWRIGHT_INTEGRATION = True
+except ImportError:
+    HAS_PLAYWRIGHT_INTEGRATION = False
+
+try:
+    from services.selenium_extractor import selenium_extractor
+    HAS_SELENIUM_INTEGRATION = True
+except ImportError:
+    HAS_SELENIUM_INTEGRATION = False
+
+try:
     import trafilatura
     HAS_TRAFILATURA = True
 except ImportError:
@@ -86,6 +98,8 @@ class RobustContentExtractor:
             'beautifulsoup': {'success': 0, 'failed': 0, 'total_time': 0, 'usage_count': 0, 'available': HAS_BEAUTIFULSOUP},
             'pdf_pypdf2': {'success': 0, 'failed': 0, 'total_time': 0, 'usage_count': 0, 'available': HAS_PYPDF2},
             'pdf_pdfplumber': {'success': 0, 'failed': 0, 'total_time': 0, 'usage_count': 0, 'available': HAS_PDFPLUMBER},
+            'playwright_dynamic': {'success': 0, 'failed': 0, 'total_time': 0, 'usage_count': 0, 'available': HAS_PLAYWRIGHT_INTEGRATION},
+            'selenium_js': {'success': 0, 'failed': 0, 'total_time': 0, 'usage_count': 0, 'available': HAS_SELENIUM_INTEGRATION},
             'global': {
                 'total_extractions': 0,
                 'total_successes': 0,
@@ -181,8 +195,10 @@ class RobustContentExtractor:
             # 5. Tenta extratores em ordem de prioridade
             extractors = [
                 ('trafilatura', self._extract_with_trafilatura),
+                ('playwright_dynamic', self._extract_with_playwright),
                 ('readability', self._extract_with_readability),
                 ('newspaper', self._extract_with_newspaper),
+                ('selenium_js', self._extract_with_selenium),
                 ('beautifulsoup', self._extract_with_beautifulsoup)
             ]
             
@@ -516,6 +532,54 @@ class RobustContentExtractor:
             
         except Exception as e:
             logger.error(f"Erro Trafilatura: {e}")
+            return None
+    
+    def _extract_with_playwright(self, html: str, url: str) -> Optional[str]:
+        """Extrai com Playwright para páginas dinâmicas"""
+        if not HAS_PLAYWRIGHT_INTEGRATION:
+            return None
+        
+        try:
+            # Verifica se é página dinâmica primeiro
+            if not self._is_dynamic_page(html):
+                return None  # Não usa Playwright para páginas estáticas
+            
+            result = playwright_extractor.extract_content_sync(url)
+            
+            if result['success']:
+                content = result['content']
+                if content:
+                    content = self._clean_content(content)
+                    return content
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Erro Playwright: {e}")
+            return None
+    
+    def _extract_with_selenium(self, html: str, url: str) -> Optional[str]:
+        """Extrai com Selenium para páginas JavaScript pesadas"""
+        if not HAS_SELENIUM_INTEGRATION:
+            return None
+        
+        try:
+            # Verifica se é página JS pesada
+            if not self._is_dynamic_page(html):
+                return None  # Não usa Selenium para páginas estáticas
+            
+            result = selenium_extractor.extract_js_heavy_content(url)
+            
+            if result['success']:
+                content = result['content']
+                if content:
+                    content = self._clean_content(content)
+                    return content
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Erro Selenium: {e}")
             return None
     
     def _extract_with_readability(self, html: str, url: str) -> Optional[str]:
